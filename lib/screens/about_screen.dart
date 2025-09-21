@@ -11,8 +11,6 @@ class AboutScreen extends StatelessWidget {
   Future<void> _launchUrl(String urlString) async {
     final Uri url = Uri.parse(urlString);
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      // Optional: Show an error to the user if the URL can't be launched.
-      print('Could not launch $urlString');
     }
   }
 

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // <-- THIS IS THE CRITICAL IMPORT
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gamelog/models/game.dart';
 import 'package:gamelog/providers/game_provider.dart';
+import 'package:gamelog/screens/about_screen.dart'; // <-- Added import
 import 'package:gamelog/screens/add_edit_game_screen.dart';
 import 'package:gamelog/widgets/game_list_view.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -77,7 +78,7 @@ class HomeScreen extends ConsumerWidget {
         // Show the current filter in the title
         title: Text(_filterTitle(currentFilter)),
         actions: [
-          // This is our filter menu button
+          // Filter Button
           PopupMenuButton<GameFilter>(
             icon: const Icon(Icons.filter_list),
             onSelected: (filter) {
@@ -93,6 +94,17 @@ class HomeScreen extends ConsumerWidget {
               const PopupMenuItem(value: GameFilter.notStarted, child: Text('Not Started')),
             ],
           ),
+
+          // --- THIS IS THE NEWLY ADDED BUTTON ---
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (ctx) => const AboutScreen()),
+              );
+            },
+          ),
+          // --- END OF NEW BUTTON ---
         ],
       ),
       body: GameListView(games: games),

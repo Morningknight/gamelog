@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gamelog/models/game.dart';
+import 'package:gamelog/providers/theme_provider.dart'; // Import theme provider
 import 'package:gamelog/screens/main_screen.dart';
+import 'package:gamelog/themes/app_themes.dart'; // Import themes
 import 'package:hive_flutter/hive_flutter.dart';
 
 void main() async {
@@ -12,36 +14,25 @@ void main() async {
   runApp(const ProviderScope(child: GameLogApp()));
 }
 
-class GameLogApp extends StatelessWidget {
+// Make the app a ConsumerWidget to listen to the theme provider.
+class GameLogApp extends ConsumerWidget {
   const GameLogApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch the theme provider. When its state changes, this widget will rebuild.
+    final themeMode = ref.watch(themeProvider);
+
     return MaterialApp(
       title: 'GameLog',
-      theme: ThemeData.dark().copyWith(
-        primaryColor: const Color(0xFF8A2BE2),
-        scaffoldBackgroundColor: const Color(0xFF1A1A1A),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF222222),
-          elevation: 0,
-        ),
-        floatingActionButtonTheme: FloatingActionButtonThemeData(
-          backgroundColor: const Color(0xFF9D4EDD),
-        ),
-        colorScheme: const ColorScheme.dark().copyWith(
-          primary: const Color(0xFF9D4EDD),
-          secondary: const Color(0xFFC77DFF),
-          onPrimary: Colors.white,
-          surface: const Color(0xFF2C2C2C),
-        ),
-        // --- THIS IS THE CORRECTED LINE ---
-        bottomAppBarTheme: const BottomAppBarThemeData(
-          color: Color(0xFF222222),
-          elevation: 0,
-        ),
-        // --- END OF CORRECTION ---
-      ),
+
+      // Assign our custom themes
+      theme: lightTheme,
+      darkTheme: darkTheme,
+
+      // Tell MaterialApp which theme to use based on the provider's state
+      themeMode: themeMode,
+
       debugShowCheckedModeBanner: false,
       home: const MainScreen(),
     );

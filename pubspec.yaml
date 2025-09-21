@@ -36,6 +36,7 @@ dependencies:
   hive_flutter: ^1.1.0 # Needed for initialization in Flutter
   path_provider: ^2.0.11 # To find a safe place on the device to store the database
 
+  flutter_riverpod: ^2.1.3
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8

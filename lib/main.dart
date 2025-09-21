@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gamelog/models/game.dart';
-import 'package:gamelog/screens/add_edit_game_screen.dart'; // <-- ADD THIS IMPORT
+import 'package:gamelog/providers/game_provider.dart'; // <-- THIS IS THE FIX
+import 'package:gamelog/screens/add_edit_game_screen.dart';
 import 'package:gamelog/widgets/game_list_view.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -9,7 +11,9 @@ void main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(GameAdapter());
   await Hive.openBox<Game>('games');
-  runApp(const GameLogApp());
+
+  // Wrap the entire app in a ProviderScope
+  runApp(const ProviderScope(child: GameLogApp()));
 }
 
 class GameLogApp extends StatelessWidget {
@@ -42,56 +46,29 @@ class GameLogApp extends StatelessWidget {
   }
 }
 
-class HomeScreen extends StatelessWidget {
+// MAKE HomeScreen a ConsumerWidget
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final List<Game> dummyGames = [
-      Game(
-        title: 'The Witcher 3: Wild Hunt',
-        platform: 'PC',
-        genre: 'Action RPG',
-        status: 'Beaten',
-        dateAdded: DateTime.now(),
-      ),
-      Game(
-        title: 'Cyberpunk 2077',
-        platform: 'PlayStation 5',
-        genre: 'Action RPG',
-        status: 'Now Playing',
-        dateAdded: DateTime.now(),
-      ),
-      Game(
-        title: 'Elden Ring',
-        platform: 'PC',
-        genre: 'Souls-like',
-        status: 'Paused',
-        dateAdded: DateTime.now(),
-      ),
-      Game(
-        title: 'Hollow Knight',
-        platform: 'Nintendo Switch',
-        genre: 'Metroidvania',
-        status: 'Not Started',
-        dateAdded: DateTime.now(),
-      ),
-    ];
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watch the gameProvider to get the list of games
+    // This will automatically rebuild the widget when the list changes.
+    final List<Game> games = ref.watch(gameProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('My GameLog'),
       ),
-      body: GameListView(games: dummyGames),
+      // Use the real list of games from the provider
+      body: GameListView(games: games),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // --- UPDATE THIS PART ---
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (ctx) => const AddEditGameScreen(),
             ),
           );
-          // --- END OF UPDATE ---
         },
         child: const Icon(Icons.add),
       ),

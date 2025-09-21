@@ -1,25 +1,36 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // <-- ADD THIS
-import 'package:gamelog/models/game.dart'; // <-- ADD THIS
-import 'package:gamelog/providers/game_provider.dart'; // <-- ADD THIS
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gamelog/models/game.dart';
+import 'package:gamelog/providers/game_provider.dart';
 
-// Change to ConsumerStatefulWidget
-class AddEditGameScreen extends ConsumerStatefulWidget { // <-- MODIFY THIS
-  const AddEditGameScreen({super.key});
+class AddEditGameScreen extends ConsumerStatefulWidget {
+  final Game? game;
+  const AddEditGameScreen({super.key, this.game});
 
   @override
-  // Change to ConsumerState
-  ConsumerState<AddEditGameScreen> createState() => _AddEditGameScreenState(); // <-- MODIFY THIS
+  ConsumerState<AddEditGameScreen> createState() => _AddEditGameScreenState();
 }
 
-// Change to ConsumerState
-class _AddEditGameScreenState extends ConsumerState<AddEditGameScreen> { // <-- MODIFY THIS
+class _AddEditGameScreenState extends ConsumerState<AddEditGameScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _platformController = TextEditingController();
   final _genreController = TextEditingController();
-  String? _selectedStatus = 'Not Started';
+  String? _selectedStatus;
   final List<String> _statuses = ['Not Started', 'Now Playing', 'Paused', 'Beaten', 'Dropped'];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.game != null) {
+      _titleController.text = widget.game!.title;
+      _platformController.text = widget.game!.platform;
+      _genreController.text = widget.game!.genre;
+      _selectedStatus = widget.game!.status;
+    } else {
+      _selectedStatus = 'Not Started';
+    }
+  }
 
   @override
   void dispose() {
@@ -31,33 +42,37 @@ class _AddEditGameScreenState extends ConsumerState<AddEditGameScreen> { // <-- 
 
   void _saveForm() {
     final isValid = _formKey.currentState!.validate();
-    if (!isValid) {
+    if (!isValid || _selectedStatus == null) {
       return;
     }
 
-    // --- UPDATE THIS PART ---
-    final newGame = Game(
+    final gameData = Game(
       title: _titleController.text,
       platform: _platformController.text,
       genre: _genreController.text,
       status: _selectedStatus!,
-      dateAdded: DateTime.now(),
+      dateAdded: widget.game?.dateAdded ?? DateTime.now(),
     );
 
-    // Use the provider to add the game
-    // ref.read tells us to "call a function" on the provider, not listen for changes.
-    ref.read(gameProvider.notifier).addGame(newGame);
+    if (widget.game != null) {
+      // Use gameListProvider to call the update method
+      ref.read(gameListProvider.notifier).updateGame(widget.game!, gameData);
+    } else {
+      // Use gameListProvider to call the add method
+      ref.read(gameListProvider.notifier).addGame(gameData);
+    }
 
     Navigator.of(context).pop();
-    // --- END OF UPDATE ---
   }
 
   @override
   Widget build(BuildContext context) {
-    // ... no changes needed in the build method ...
+    final isEditing = widget.game != null;
+    final appBarTitle = isEditing ? 'Edit Game' : 'Add New Game';
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add New Game'),
+        title: Text(appBarTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.save),
@@ -108,7 +123,7 @@ class _AddEditGameScreenState extends ConsumerState<AddEditGameScreen> { // <-- 
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _selectedStatus,
+                initialValue: _selectedStatus,
                 decoration: const InputDecoration(labelText: 'Status'),
                 items: _statuses.map((String status) {
                   return DropdownMenuItem<String>(

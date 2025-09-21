@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // <-- THIS IS THE CRITICAL IMPORT
 import 'package:gamelog/models/game.dart';
-import 'package:gamelog/providers/game_provider.dart'; // <-- THIS IS THE FIX
+import 'package:gamelog/providers/game_provider.dart';
 import 'package:gamelog/screens/add_edit_game_screen.dart';
 import 'package:gamelog/widgets/game_list_view.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -11,8 +11,6 @@ void main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(GameAdapter());
   await Hive.openBox<Game>('games');
-
-  // Wrap the entire app in a ProviderScope
   runApp(const ProviderScope(child: GameLogApp()));
 }
 
@@ -46,21 +44,57 @@ class GameLogApp extends StatelessWidget {
   }
 }
 
-// MAKE HomeScreen a ConsumerWidget
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
+  // A helper function to convert the enum to a display-friendly string
+  String _filterTitle(GameFilter filter) {
+    switch (filter) {
+      case GameFilter.nowPlaying:
+        return 'Now Playing';
+      case GameFilter.beaten:
+        return 'Beaten';
+      case GameFilter.notStarted:
+        return 'Not Started';
+      case GameFilter.paused:
+        return 'Paused';
+      case GameFilter.dropped:
+        return 'Dropped';
+      case GameFilter.all:
+        return 'All Games';
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Watch the gameProvider to get the list of games
-    // This will automatically rebuild the widget when the list changes.
+    // We watch gameProvider. It now provides the filtered list automatically.
     final List<Game> games = ref.watch(gameProvider);
+    // We also watch the filter provider to display the current filter title.
+    final currentFilter = ref.watch(gameFilterProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My GameLog'),
+        // Show the current filter in the title
+        title: Text(_filterTitle(currentFilter)),
+        actions: [
+          // This is our filter menu button
+          PopupMenuButton<GameFilter>(
+            icon: const Icon(Icons.filter_list),
+            onSelected: (filter) {
+              // When a user selects a filter, we update the filter provider's state.
+              ref.read(gameFilterProvider.notifier).state = filter;
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<GameFilter>>[
+              const PopupMenuItem(value: GameFilter.all, child: Text('All')),
+              const PopupMenuItem(value: GameFilter.nowPlaying, child: Text('Now Playing')),
+              const PopupMenuItem(value: GameFilter.beaten, child: Text('Beaten')),
+              const PopupMenuItem(value: GameFilter.paused, child: Text('Paused')),
+              const PopupMenuItem(value: GameFilter.dropped, child: Text('Dropped')),
+              const PopupMenuItem(value: GameFilter.notStarted, child: Text('Not Started')),
+            ],
+          ),
+        ],
       ),
-      // Use the real list of games from the provider
       body: GameListView(games: games),
       floatingActionButton: FloatingActionButton(
         onPressed: () {

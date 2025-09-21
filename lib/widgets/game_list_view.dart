@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // <-- ADD THIS
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gamelog/models/game.dart';
-import 'package:gamelog/providers/game_provider.dart';   // <-- ADD THIS
+import 'package:gamelog/providers/game_provider.dart';
+import 'package:gamelog/screens/add_edit_game_screen.dart';
 import 'package:gamelog/widgets/game_card.dart';
 
-// Change to a ConsumerWidget
-class GameListView extends ConsumerWidget { // <-- MODIFY THIS
+class GameListView extends ConsumerWidget {
   final List<Game> games;
 
   const GameListView({
@@ -14,8 +14,7 @@ class GameListView extends ConsumerWidget { // <-- MODIFY THIS
   });
 
   @override
-  // Add WidgetRef ref to the build method
-  Widget build(BuildContext context, WidgetRef ref) { // <-- MODIFY THIS
+  Widget build(BuildContext context, WidgetRef ref) {
     if (games.isEmpty) {
       return const Center(
         child: Column(
@@ -23,15 +22,9 @@ class GameListView extends ConsumerWidget { // <-- MODIFY THIS
           children: [
             Icon(Icons.gamepad_outlined, size: 64, color: Colors.grey),
             SizedBox(height: 16),
-            Text(
-              'Your backlog is empty!',
-              style: TextStyle(fontSize: 18),
-            ),
+            Text('Your backlog is empty!'),
             SizedBox(height: 8),
-            Text(
-              'Tap the + button to add a game.',
-              style: TextStyle(color: Colors.grey),
-            ),
+            Text('Tap the + button to add a game.'),
           ],
         ),
       );
@@ -42,12 +35,10 @@ class GameListView extends ConsumerWidget { // <-- MODIFY THIS
       itemBuilder: (context, index) {
         final game = games[index];
 
-        // --- WRAP GameCard WITH Dismissible ---
+        // --- RESTORED THE DISMISSIBLE WIDGET ---
+        // This is the final, correct architecture.
         return Dismissible(
-          // A Key is crucial. It lets Flutter know which item is which.
           key: ValueKey(game.key),
-
-          // The background that is revealed when swiping.
           background: Container(
             color: Colors.red,
             alignment: Alignment.centerRight,
@@ -55,28 +46,27 @@ class GameListView extends ConsumerWidget { // <-- MODIFY THIS
             margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: const Icon(Icons.delete, color: Colors.white),
           ),
-
-          // The direction the user can swipe.
-          direction: DismissDirection.endToStart, // Only allow swiping from right to left
-
-          // This function is called when the item has been fully swiped away.
+          direction: DismissDirection.endToStart,
           onDismissed: (direction) {
-            // Call the deleteGame method from our provider.
-            ref.read(gameProvider.notifier).deleteGame(game);
-
-            // Optionally, show a temporary "Undo" message.
+            ref.read(gameListProvider.notifier).deleteGame(game);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('${game.title} deleted'),
-                // We could add an "Undo" button here in the future.
+                duration: const Duration(seconds: 1),
               ),
             );
           },
-
-          // The actual widget to display.
-          child: GameCard(game: game),
+          child: GameCard(
+            game: game,
+            onLongPress: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (ctx) => AddEditGameScreen(game: game),
+                ),
+              );
+            },
+          ),
         );
-        // --- END OF Dismissible WRAPPER ---
       },
     );
   }

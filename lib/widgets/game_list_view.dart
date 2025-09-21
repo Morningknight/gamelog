@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // <-- ADD THIS
 import 'package:gamelog/models/game.dart';
+import 'package:gamelog/providers/game_provider.dart';   // <-- ADD THIS
 import 'package:gamelog/widgets/game_card.dart';
 
-class GameListView extends StatelessWidget {
+// Change to a ConsumerWidget
+class GameListView extends ConsumerWidget { // <-- MODIFY THIS
   final List<Game> games;
 
   const GameListView({
@@ -11,8 +14,8 @@ class GameListView extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    // If the list of games is empty, show a helpful message.
+  // Add WidgetRef ref to the build method
+  Widget build(BuildContext context, WidgetRef ref) { // <-- MODIFY THIS
     if (games.isEmpty) {
       return const Center(
         child: Column(
@@ -34,15 +37,46 @@ class GameListView extends StatelessWidget {
       );
     }
 
-    // If there are games, display them in an efficient, scrollable list.
     return ListView.builder(
-      // The number of items in the list.
       itemCount: games.length,
-      // A function that builds each item in the list.
-      // It's efficient because it only builds the items visible on screen.
       itemBuilder: (context, index) {
         final game = games[index];
-        return GameCard(game: game);
+
+        // --- WRAP GameCard WITH Dismissible ---
+        return Dismissible(
+          // A Key is crucial. It lets Flutter know which item is which.
+          key: ValueKey(game.key),
+
+          // The background that is revealed when swiping.
+          background: Container(
+            color: Colors.red,
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 20.0),
+            margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: const Icon(Icons.delete, color: Colors.white),
+          ),
+
+          // The direction the user can swipe.
+          direction: DismissDirection.endToStart, // Only allow swiping from right to left
+
+          // This function is called when the item has been fully swiped away.
+          onDismissed: (direction) {
+            // Call the deleteGame method from our provider.
+            ref.read(gameProvider.notifier).deleteGame(game);
+
+            // Optionally, show a temporary "Undo" message.
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${game.title} deleted'),
+                // We could add an "Undo" button here in the future.
+              ),
+            );
+          },
+
+          // The actual widget to display.
+          child: GameCard(game: game),
+        );
+        // --- END OF Dismissible WRAPPER ---
       },
     );
   }

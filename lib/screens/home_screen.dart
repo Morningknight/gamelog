@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gamelog/models/game.dart';
 import 'package:gamelog/providers/game_provider.dart';
 import 'package:gamelog/screens/about_screen.dart';
-import 'package:gamelog/screens/add_edit_game_screen.dart';
 import 'package:gamelog/widgets/game_list_view.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -31,8 +30,6 @@ class HomeScreen extends ConsumerWidget {
     final List<Game> games = ref.watch(gameProvider);
     final currentFilter = ref.watch(gameFilterProvider);
 
-    // Note: The Scaffold and FAB have been removed from here.
-    // They are now managed by the MainScreen.
     return Scaffold(
       appBar: AppBar(
         title: Text(_filterTitle(currentFilter)),
@@ -62,18 +59,7 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
       body: GameListView(games: games),
-      // IMPORTANT: We need to add our own FAB here that navigates to the add screen.
-      // The one in MainScreen is just for visual structure.
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (ctx) => const AddEditGameScreen(),
-            ),
-          );
-        },
-        child: const Icon(Icons.add),
-      ),
+      // --- THE FLOATING ACTION BUTTON HAS BEEN REMOVED FROM THIS FILE ---
     );
   }
 }

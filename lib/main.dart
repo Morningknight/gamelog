@@ -11,6 +11,7 @@ void main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(GameAdapter());
   await Hive.openBox<Game>('games');
+  await Hive.openBox('userSettings');
   runApp(const ProviderScope(child: GameLogApp()));
 }
 

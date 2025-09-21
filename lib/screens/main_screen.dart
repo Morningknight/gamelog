@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gamelog/screens/add_edit_game_screen.dart';
 import 'package:gamelog/screens/home_screen.dart';
-import 'package:gamelog/screens/profile_screen.dart'; // <-- ADD THIS IMPORT
+import 'package:gamelog/screens/profile_screen.dart';
 
 // A simple provider to hold the state of the selected tab index.
 final mainScreenIndexProvider = StateProvider<int>((ref) => 0);
@@ -14,16 +14,17 @@ class MainScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedIndex = ref.watch(mainScreenIndexProvider);
 
-    // List of the main screens in our app.
     final List<Widget> screens = [
       const HomeScreen(),
       Container(color: Colors.blue, child: const Center(child: Text('Calendar'))), // Placeholder
       Container(color: Colors.green, child: const Center(child: Text('Focus'))), // Placeholder
-      const ProfileScreen(), // <-- REPLACE THE RED CONTAINER
+      const ProfileScreen(),
     ];
 
+    // The FloatingActionButton is defined here, in one central place.
     final fab = FloatingActionButton(
       onPressed: () {
+        // This navigation is correct.
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (ctx) => const AddEditGameScreen(),
@@ -36,6 +37,7 @@ class MainScreen extends ConsumerWidget {
     return Scaffold(
       body: screens[selectedIndex],
 
+      // This logic ensures only one FAB is ever in the widget tree.
       floatingActionButton: selectedIndex == 0 ? fab : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 

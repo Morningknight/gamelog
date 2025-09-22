@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gamelog/screens/add_edit_game_screen.dart';
+import 'package:gamelog/screens/archive_screen.dart'; // <-- ADD THIS IMPORT
+import 'package:gamelog/screens/backlog_screen.dart'; // <-- ADD THIS IMPORT
 import 'package:gamelog/screens/home_screen.dart';
 import 'package:gamelog/screens/profile_screen.dart';
 
-// A simple provider to hold the state of the selected tab index.
+// The mainScreenIndexProvider remains the same
 final mainScreenIndexProvider = StateProvider<int>((ref) => 0);
 
 class MainScreen extends ConsumerWidget {
@@ -14,31 +16,35 @@ class MainScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedIndex = ref.watch(mainScreenIndexProvider);
 
+    // --- REPLACE PLACEHOLDERS WITH REAL SCREENS ---
     final List<Widget> screens = [
-      const HomeScreen(),
-      Container(color: Colors.blue, child: const Center(child: Text('Calendar'))), // Placeholder
-      Container(color: Colors.green, child: const Center(child: Text('Focus'))), // Placeholder
-      const ProfileScreen(),
+      const HomeScreen(),      // Index 0: Now Playing
+      const BacklogScreen(),   // Index 1: Backlog
+      const ArchiveScreen(),   // Index 2: Archive
+      const ProfileScreen(),     // Index 3: Profile
     ];
 
-    // The FloatingActionButton is defined here, in one central place.
-    final fab = FloatingActionButton(
-      onPressed: () {
-        // This navigation is correct.
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (ctx) => const AddEditGameScreen(),
-          ),
-        );
-      },
-      child: const Icon(Icons.add),
-    );
+    // Determine which FAB to show based on the current screen
+    Widget? floatingActionButton;
+    if (selectedIndex == 0 || selectedIndex == 1) { // Show on Now Playing & Backlog
+      floatingActionButton = FloatingActionButton(
+        onPressed: () {
+          // The FAB should add a game to the correct list.
+          // For now, it opens a generic add screen. This can be refined later.
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (ctx) => const AddEditGameScreen(),
+            ),
+          );
+        },
+        child: const Icon(Icons.add),
+      );
+    }
 
     return Scaffold(
       body: screens[selectedIndex],
 
-      // This logic ensures only one FAB is ever in the widget tree.
-      floatingActionButton: selectedIndex == 0 ? fab : null,
+      floatingActionButton: floatingActionButton,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
       bottomNavigationBar: BottomAppBar(
@@ -47,11 +53,11 @@ class MainScreen extends ConsumerWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: <Widget>[
-            _buildNavItem(context, ref, icon: Icons.home_filled, index: 0, label: 'Index'),
-            _buildNavItem(context, ref, icon: Icons.calendar_today, index: 1, label: 'Calendar'),
-            const SizedBox(width: 40),
-            _buildNavItem(context, ref, icon: Icons.timer, index: 2, label: 'Focus'),
-            _buildNavItem(context, ref, icon: Icons.person, index: 3, label: 'Profile'),
+            _buildNavItem(context, ref, icon: Icons.gamepad_outlined, index: 0, label: 'Now Playing'),
+            _buildNavItem(context, ref, icon: Icons.calendar_today_outlined, index: 1, label: 'Backlog'),
+            const SizedBox(width: 40), // The space for the FAB
+            _buildNavItem(context, ref, icon: Icons.archive_outlined, index: 2, label: 'Archive'),
+            _buildNavItem(context, ref, icon: Icons.person_outline, index: 3, label: 'Profile'),
           ],
         ),
       ),
@@ -62,12 +68,14 @@ class MainScreen extends ConsumerWidget {
     final isSelected = ref.watch(mainScreenIndexProvider) == index;
     final color = isSelected ? Theme.of(context).colorScheme.primary : Colors.grey;
 
-    return IconButton(
-      icon: Icon(icon, color: color),
-      onPressed: () {
-        ref.read(mainScreenIndexProvider.notifier).state = index;
-      },
-      tooltip: label,
+    return Tooltip(
+      message: label,
+      child: IconButton(
+        icon: Icon(icon, color: color),
+        onPressed: () {
+          ref.read(mainScreenIndexProvider.notifier).state = index;
+        },
+      ),
     );
   }
 }

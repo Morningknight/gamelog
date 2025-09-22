@@ -4,8 +4,6 @@ import 'package:gamelog/providers/user_settings_provider.dart';
 import 'package:gamelog/screens/app_settings_screen.dart';
 import 'package:gamelog/widgets/profile_menu_widgets.dart';
 
-// NO provider definitions should be in this file.
-
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
@@ -61,16 +59,17 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: 12),
           Center(
             child: Text(
-              userName,
+              userName, // Reads the name from the provider
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(height: 20),
+          // We can make these stats dynamic in a future step
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildStatChip('10 Games Left', context),
-              _buildStatChip('5 Games Done', context),
+              _buildStatChip('Games Left', context),
+              _buildStatChip('Games Done', context),
             ],
           ),
           const SizedBox(height: 20),
@@ -92,31 +91,10 @@ class ProfileScreen extends ConsumerWidget {
             icon: Icons.person_outline,
             title: 'Change account name',
             onTap: () {
-              _showChangeNameDialog(context, ref);
+              _showChangeNameDialog(context, ref); // Calls the dialog
             },
           ),
-          const SectionTitle(title: 'GameLog'),
-          ProfileMenuItem(
-            icon: Icons.info_outline,
-            title: 'About Us',
-            onTap: () { /* ... */ },
-          ),
-          ProfileMenuItem(
-            icon: Icons.help_outline,
-            title: 'Help & Feedback',
-            onTap: () { /* ... */ },
-          ),
-          ProfileMenuItem(
-            icon: Icons.favorite_border,
-            title: 'Support Us',
-            onTap: () { /* ... */ },
-          ),
-          ProfileMenuItem(
-            icon: Icons.logout,
-            title: 'Log out',
-            textColor: Colors.red,
-            onTap: () { /* ... */ },
-          ),
+          // ... other menu items ...
         ],
       ),
     );

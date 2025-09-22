@@ -20,7 +20,7 @@ class GameAdapter extends TypeAdapter<Game> {
       title: fields[0] as String,
       platform: fields[1] as String,
       genre: fields[2] as String,
-      status: fields[3] as String,
+      status: fields[3] as GameStatus,
       dateAdded: fields[4] as DateTime,
     );
   }
@@ -48,6 +48,65 @@ class GameAdapter extends TypeAdapter<Game> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is GameAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class GameStatusAdapter extends TypeAdapter<GameStatus> {
+  @override
+  final int typeId = 1;
+
+  @override
+  GameStatus read(BinaryReader reader) {
+    switch (reader.readByte()) {
+      case 0:
+        return GameStatus.backlog;
+      case 1:
+        return GameStatus.notStarted;
+      case 2:
+        return GameStatus.nowPlaying;
+      case 3:
+        return GameStatus.paused;
+      case 4:
+        return GameStatus.beaten;
+      case 5:
+        return GameStatus.dropped;
+      default:
+        return GameStatus.backlog;
+    }
+  }
+
+  @override
+  void write(BinaryWriter writer, GameStatus obj) {
+    switch (obj) {
+      case GameStatus.backlog:
+        writer.writeByte(0);
+        break;
+      case GameStatus.notStarted:
+        writer.writeByte(1);
+        break;
+      case GameStatus.nowPlaying:
+        writer.writeByte(2);
+        break;
+      case GameStatus.paused:
+        writer.writeByte(3);
+        break;
+      case GameStatus.beaten:
+        writer.writeByte(4);
+        break;
+      case GameStatus.dropped:
+        writer.writeByte(5);
+        break;
+    }
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GameStatusAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

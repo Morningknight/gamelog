@@ -10,6 +10,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   Hive.registerAdapter(GameAdapter());
+  Hive.registerAdapter(GameStatusAdapter());
   await Hive.openBox<Game>('games');
   await Hive.openBox('userSettings');
   runApp(const ProviderScope(child: GameLogApp()));

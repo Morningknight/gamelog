@@ -16,8 +16,21 @@ class _AddEditGameScreenState extends ConsumerState<AddEditGameScreen> {
   final _titleController = TextEditingController();
   final _platformController = TextEditingController();
   final _genreController = TextEditingController();
-  String? _selectedStatus;
-  final List<String> _statuses = ['Not Started', 'Now Playing', 'Paused', 'Beaten', 'Dropped'];
+
+  // --- UPDATED STATUS LOGIC ---
+  GameStatus? _selectedStatus; // Now holds a GameStatus object
+
+  // Helper to get a display-friendly string from the enum
+  String _getStatusText(GameStatus status) {
+    switch (status) {
+      case GameStatus.nowPlaying: return 'Now Playing';
+      case GameStatus.notStarted: return 'Not Started';
+      case GameStatus.beaten: return 'Beaten';
+      case GameStatus.paused: return 'Paused';
+      case GameStatus.dropped: return 'Dropped';
+      case GameStatus.backlog: return 'Backlog';
+    }
+  }
 
   @override
   void initState() {
@@ -28,7 +41,8 @@ class _AddEditGameScreenState extends ConsumerState<AddEditGameScreen> {
       _genreController.text = widget.game!.genre;
       _selectedStatus = widget.game!.status;
     } else {
-      _selectedStatus = 'Not Started';
+      // Default to Backlog for a new game
+      _selectedStatus = GameStatus.backlog;
     }
   }
 
@@ -46,20 +60,24 @@ class _AddEditGameScreenState extends ConsumerState<AddEditGameScreen> {
       return;
     }
 
-    final gameData = Game(
-      title: _titleController.text,
-      platform: _platformController.text,
-      genre: _genreController.text,
-      status: _selectedStatus!,
-      dateAdded: widget.game?.dateAdded ?? DateTime.now(),
-    );
-
     if (widget.game != null) {
-      // Use gameListProvider to call the update method
-      ref.read(gameListProvider.notifier).updateGame(widget.game!, gameData);
+      // We are in Edit Mode
+      // Update the existing game object's properties
+      widget.game!.title = _titleController.text;
+      widget.game!.platform = _platformController.text;
+      widget.game!.genre = _genreController.text;
+      widget.game!.status = _selectedStatus!;
+      ref.read(gameListProvider.notifier).updateGame(widget.game!);
     } else {
-      // Use gameListProvider to call the add method
-      ref.read(gameListProvider.notifier).addGame(gameData);
+      // We are in Add Mode
+      final newGame = Game(
+        title: _titleController.text,
+        platform: _platformController.text,
+        genre: _genreController.text,
+        status: _selectedStatus!,
+        dateAdded: DateTime.now(),
+      );
+      ref.read(gameListProvider.notifier).addGame(newGame);
     }
 
     Navigator.of(context).pop();
@@ -74,10 +92,7 @@ class _AddEditGameScreenState extends ConsumerState<AddEditGameScreen> {
       appBar: AppBar(
         title: Text(appBarTitle),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _saveForm,
-          ),
+          IconButton(icon: const Icon(Icons.save), onPressed: _saveForm),
         ],
       ),
       body: Padding(
@@ -89,46 +104,30 @@ class _AddEditGameScreenState extends ConsumerState<AddEditGameScreen> {
               TextFormField(
                 controller: _titleController,
                 decoration: const InputDecoration(labelText: 'Title'),
-                textInputAction: TextInputAction.next,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter a title.';
-                  }
-                  return null;
-                },
+                validator: (value) => value!.trim().isEmpty ? 'Please enter a title.' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _platformController,
-                decoration: const InputDecoration(labelText: 'Platform (e.g., PC, PS5)'),
-                textInputAction: TextInputAction.next,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter a platform.';
-                  }
-                  return null;
-                },
+                decoration: const InputDecoration(labelText: 'Platform'),
+                validator: (value) => value!.trim().isEmpty ? 'Please enter a platform.' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _genreController,
                 decoration: const InputDecoration(labelText: 'Genre'),
-                textInputAction: TextInputAction.done,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter a genre.';
-                  }
-                  return null;
-                },
+                validator: (value) => value!.trim().isEmpty ? 'Please enter a genre.' : null,
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
+              // --- UPDATED DROPDOWN ---
+              DropdownButtonFormField<GameStatus>(
                 initialValue: _selectedStatus,
                 decoration: const InputDecoration(labelText: 'Status'),
-                items: _statuses.map((String status) {
-                  return DropdownMenuItem<String>(
+                // Use GameStatus.values to get all possible enum options
+                items: GameStatus.values.map((GameStatus status) {
+                  return DropdownMenuItem<GameStatus>(
                     value: status,
-                    child: Text(status),
+                    child: Text(_getStatusText(status)),
                   );
                 }).toList(),
                 onChanged: (newValue) {

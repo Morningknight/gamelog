@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gamelog/models/game.dart';
 import 'package:gamelog/providers/game_provider.dart';
-import 'package:gamelog/screens/add_edit_game_screen.dart';
 import 'package:gamelog/widgets/game_card.dart';
 
 class BacklogScreen extends ConsumerWidget {
@@ -13,53 +13,48 @@ class BacklogScreen extends ConsumerWidget {
     final List<Game> games = ref.watch(backlogProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Backlog'),
-        // No actions button needed here anymore.
-      ),
+      appBar: AppBar(title: const Text('My Backlog')),
       body: ListView.builder(
         itemCount: games.length,
         itemBuilder: (context, index) {
           final game = games[index];
-          return Card(
-            clipBehavior: Clip.antiAlias,
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: InkWell(
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (ctx) => AddEditGameScreen(game: game)),
-                );
-              },
-              child: Stack(
-                children: [
-                  GameCard(game: game),
-                  Positioned(
-                    bottom: 8,
-                    left: 16,
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.play_arrow, size: 16),
-                      label: const Text('Start Playing'),
-                      onPressed: () {
-                        game.status = GameStatus.nowPlaying;
-                        ref.read(gameListProvider.notifier).updateGame(game);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('${game.title} moved to Now Playing')),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        textStyle: const TextStyle(fontSize: 12),
-                        backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.8),
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  )
-                ],
-              ),
+          return Dismissible(
+            key: ValueKey(game.key),
+            // SWIPE RIGHT -> NOW PLAYING
+            background: _buildSwipeBackground(
+              color: Colors.blue,
+              icon: Icons.play_circle_outline,
+              alignment: Alignment.centerLeft,
             ),
+            // SWIPE LEFT -> ARCHIVE
+            secondaryBackground: _buildSwipeBackground(
+              color: Colors.green,
+              icon: Icons.archive,
+              alignment: Alignment.centerRight,
+            ),
+            onDismissed: (direction) {
+              HapticFeedback.mediumImpact();
+              if (direction == DismissDirection.startToEnd) { // Right
+                ref.read(gameListProvider.notifier).updateGameStatus(game, GameStatus.nowPlaying);
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${game.title} moved to Now Playing')));
+              } else { // Left
+                ref.read(gameListProvider.notifier).updateGameStatus(game, GameStatus.beaten);
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${game.title} moved to Archive')));
+              }
+            },
+            child: GameCard(game: game),
           );
         },
       ),
+    );
+  }
+
+  Widget _buildSwipeBackground({required Color color, required IconData icon, required Alignment alignment}) {
+    return Container(
+      color: color,
+      alignment: alignment,
+      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      child: Icon(icon, color: Colors.white),
     );
   }
 }

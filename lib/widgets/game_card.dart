@@ -16,7 +16,7 @@ class GameCard extends StatelessWidget {
       case GameStatus.paused: return 'Paused';
       case GameStatus.dropped: return 'Dropped';
       case GameStatus.backlog: return 'Backlog';
-      default: return 'Unknown';
+
     }
   }
 
@@ -28,7 +28,7 @@ class GameCard extends StatelessWidget {
       case GameStatus.notStarted:
       case GameStatus.dropped:
       case GameStatus.backlog:
-      default: return Colors.grey.shade600;
+       return Colors.grey.shade600;
     }
   }
 

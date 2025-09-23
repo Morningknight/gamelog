@@ -8,7 +8,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 class AddEditGameScreen extends ConsumerStatefulWidget {
   final Game? game;
-  final GameStatus? defaultStatus; // Accepts a default status
+  final GameStatus? defaultStatus;
 
   const AddEditGameScreen({super.key, this.game, this.defaultStatus});
 
@@ -17,6 +17,7 @@ class AddEditGameScreen extends ConsumerStatefulWidget {
 }
 
 class _AddEditGameScreenState extends ConsumerState<AddEditGameScreen> {
+  // --- THESE WERE THE MISSING PIECES ---
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
 
@@ -33,7 +34,6 @@ class _AddEditGameScreenState extends ConsumerState<AddEditGameScreen> {
       _selectedGenre = widget.game!.genre;
       _selectedStatus = widget.game!.status;
     } else { // Add Mode
-      // Use the default status passed from the FAB menu, or fallback to backlog
       _selectedStatus = widget.defaultStatus ?? GameStatus.backlog;
     }
   }
@@ -107,6 +107,32 @@ class _AddEditGameScreenState extends ConsumerState<AddEditGameScreen> {
       Navigator.of(context).pop();
     }
   }
+  // --- END OF MISSING PIECES ---
+
+  void _deleteGame() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Are you sure?'),
+        content: const Text('Do you want to permanently delete this game? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            child: const Text('No'),
+            onPressed: () => Navigator.of(ctx).pop(),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Yes, Delete'),
+            onPressed: () {
+              ref.read(gameListProvider.notifier).deleteGame(widget.game!);
+              Navigator.of(ctx).pop(); // Close the dialog
+              Navigator.of(context).pop(); // Go back from the edit screen
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,44 +150,84 @@ class _AddEditGameScreenState extends ConsumerState<AddEditGameScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: ListView(
+          child: Column(
             children: [
-              TextFormField(
-                controller: _titleController,
-                decoration: const InputDecoration(labelText: 'Title'),
-                validator: (value) => value!.trim().isEmpty ? 'Please enter a title.' : null,
+              Expanded(
+                child: ListView(
+                  children: [
+                    TextFormField(
+                      controller: _titleController,
+                      decoration: const InputDecoration(labelText: 'Title'),
+                      validator: (value) => value!.trim().isEmpty ? 'Please enter a title.' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Platform'),
+                      subtitle: Text(_selectedPlatform ?? 'Not selected'),
+                      trailing: const Icon(Icons.arrow_drop_down),
+                      onTap: _showPlatformSelector,
+                    ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Genre'),
+                      subtitle: Text(_selectedGenre ?? 'Not selected'),
+                      trailing: const Icon(Icons.arrow_drop_down),
+                      onTap: _showGenreSelector,
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<GameStatus>(
+                      initialValue: _selectedStatus,
+                      decoration: const InputDecoration(labelText: 'Status'),
+                      items: GameStatus.values.map((GameStatus status) {
+                        return DropdownMenuItem<GameStatus>(
+                          value: status,
+                          child: Text(_getStatusText(status)),
+                        );
+                      }).toList(),
+                      onChanged: (newValue) {
+                        setState(() {
+                          _selectedStatus = newValue;
+                        });
+                      },
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Platform'),
-                subtitle: Text(_selectedPlatform ?? 'Not selected'),
-                trailing: const Icon(Icons.arrow_drop_down),
-                onTap: _showPlatformSelector,
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Genre'),
-                subtitle: Text(_selectedGenre ?? 'Not selected'),
-                trailing: const Icon(Icons.arrow_drop_down),
-                onTap: _showGenreSelector,
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<GameStatus>(
-                value: _selectedStatus,
-                decoration: const InputDecoration(labelText: 'Status'),
-                items: GameStatus.values.map((GameStatus status) {
-                  return DropdownMenuItem<GameStatus>(
-                    value: status,
-                    child: Text(_getStatusText(status)),
-                  );
-                }).toList(),
-                onChanged: (newValue) {
-                  setState(() {
-                    _selectedStatus = newValue;
-                  });
-                },
-              ),
+              const SizedBox(height: 20),
+              if (isEditing)
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.delete_forever),
+                        label: const Text('Delete'),
+                        onPressed: _deleteGame,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          side: const BorderSide(color: Colors.red),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: FilledButton.icon(
+                        icon: const Icon(Icons.save),
+                        label: const Text('Save Changes'),
+                        onPressed: _saveForm,
+                      ),
+                    ),
+                  ],
+                )
+              else
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Game'),
+                    onPressed: _saveForm,
+                  ),
+                ),
             ],
           ),
         ),

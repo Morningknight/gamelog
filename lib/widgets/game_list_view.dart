@@ -11,19 +11,8 @@ class GameListView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (games.isEmpty) {
-      return const Center(
-          child: Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Text(
-              "No games in this list yet!\nUse the '+' button to add one.",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
-            ),
-          )
-      );
-    }
-
+    // The if(games.isEmpty) check has been removed.
+    // This widget now assumes it will only be built when games are present.
     return ListView.builder(
       itemCount: games.length,
       itemBuilder: (context, index) {
@@ -37,62 +26,20 @@ class GameListView extends ConsumerWidget {
             child: const Icon(Icons.archive, color: Colors.white),
           ),
           secondaryBackground: Container(
-            color: Colors.red,
+            color: Colors.orange, // Changed to orange for Backlog
             alignment: Alignment.centerRight,
             padding: const EdgeInsets.only(right: 20.0),
-            child: const Icon(Icons.delete_forever, color: Colors.white),
+            child: const Icon(Icons.playlist_add, color: Colors.white),
           ),
           onDismissed: (direction) {
             HapticFeedback.mediumImpact();
-
-            // Store a copy of the game and its original status BEFORE changing it
-            final originalGame = Game(
-              title: game.title,
-              platform: game.platform,
-              genre: game.genre,
-              status: game.status,
-              dateAdded: game.dateAdded,
-            );
-
-            String message = '';
-            SnackBarAction? undoAction;
-
-            if (direction == DismissDirection.startToEnd) {
-              // --- ARCHIVE LOGIC ---
-              message = '${game.title} archived';
+            if (direction == DismissDirection.startToEnd) { // Right -> Archive
               ref.read(gameListProvider.notifier).updateGameStatus(game, GameStatus.beaten);
-
-              undoAction = SnackBarAction(
-                label: 'Undo',
-                onPressed: () {
-                  // Revert the status change
-                  ref.read(gameListProvider.notifier).updateGameStatus(game, originalGame.status);
-                },
-              );
-
-            } else {
-              // --- DELETE LOGIC ---
-              message = '${game.title} deleted';
-              ref.read(gameListProvider.notifier).deleteGame(game);
-
-              undoAction = SnackBarAction(
-                label: 'Undo',
-                onPressed: () {
-                  // Re-add the deleted game
-                  ref.read(gameListProvider.notifier).addGame(originalGame);
-                },
-              );
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${game.title} archived')));
+            } else { // Left -> Backlog
+              ref.read(gameListProvider.notifier).updateGameStatus(game, GameStatus.backlog);
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${game.title} moved to Backlog')));
             }
-
-            // Hide any currently showing SnackBars before showing a new one
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            // Show the new SnackBar with the message and the Undo action
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(message),
-                  action: undoAction,
-                )
-            );
           },
           child: GameCard(game: game),
         );

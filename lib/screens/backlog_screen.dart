@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gamelog/models/game.dart';
 import 'package:gamelog/providers/game_provider.dart';
+import 'package:gamelog/screens/add_edit_game_screen.dart';
+import 'package:gamelog/widgets/empty_state_widget.dart';
 import 'package:gamelog/widgets/game_card.dart';
 
 class BacklogScreen extends ConsumerWidget {
@@ -13,24 +15,35 @@ class BacklogScreen extends ConsumerWidget {
     final List<Game> games = ref.watch(backlogProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My Backlog')),
-      body: ListView.builder(
+      appBar: AppBar(
+        title: const Text('My Backlog'),
+      ),
+      body: games.isEmpty
+          ? const EmptyStateWidget(
+        icon: Icons.playlist_add_check,
+        title: 'Backlog Clear!',
+        message: "This is your wishlist of games to play. Use the '+' button to add a game you're interested in.",
+      )
+      // --- FULL LISTVIEW.BUILDER LOGIC RESTORED ---
+          : ListView.builder(
         itemCount: games.length,
         itemBuilder: (context, index) {
           final game = games[index];
           return Dismissible(
             key: ValueKey(game.key),
             // SWIPE RIGHT -> NOW PLAYING
-            background: _buildSwipeBackground(
+            background: Container(
               color: Colors.blue,
-              icon: Icons.play_circle_outline,
               alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.only(left: 20.0),
+              child: const Icon(Icons.play_circle_outline, color: Colors.white),
             ),
             // SWIPE LEFT -> ARCHIVE
-            secondaryBackground: _buildSwipeBackground(
+            secondaryBackground: Container(
               color: Colors.green,
-              icon: Icons.archive,
               alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 20.0),
+              child: const Icon(Icons.archive, color: Colors.white),
             ),
             onDismissed: (direction) {
               HapticFeedback.mediumImpact();
@@ -46,15 +59,6 @@ class BacklogScreen extends ConsumerWidget {
           );
         },
       ),
-    );
-  }
-
-  Widget _buildSwipeBackground({required Color color, required IconData icon, required Alignment alignment}) {
-    return Container(
-      color: color,
-      alignment: alignment,
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-      child: Icon(icon, color: Colors.white),
     );
   }
 }

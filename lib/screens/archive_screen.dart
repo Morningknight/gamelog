@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gamelog/models/game.dart';
 import 'package:gamelog/providers/game_provider.dart';
+import 'package:gamelog/widgets/empty_state_widget.dart';
 import 'package:gamelog/widgets/game_card.dart';
 
 class ArchiveScreen extends ConsumerWidget {
@@ -13,24 +14,35 @@ class ArchiveScreen extends ConsumerWidget {
     final List<Game> games = ref.watch(archiveProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Archive')),
-      body: ListView.builder(
+      appBar: AppBar(
+        title: const Text('Archive'),
+      ),
+      body: games.isEmpty
+          ? const EmptyStateWidget(
+        icon: Icons.inventory_2_outlined,
+        title: 'Archive is Empty',
+        message: "Games you've beaten will appear here. Archive a game from the 'Now Playing' list by swiping it to the right.",
+      )
+      // --- FULL LISTVIEW.BUILDER LOGIC RESTORED ---
+          : ListView.builder(
         itemCount: games.length,
         itemBuilder: (context, index) {
           final game = games[index];
           return Dismissible(
             key: ValueKey(game.key),
             // SWIPE RIGHT -> BACKLOG
-            background: _buildSwipeBackground(
+            background: Container(
               color: Colors.orange,
-              icon: Icons.playlist_add,
               alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.only(left: 20.0),
+              child: const Icon(Icons.playlist_add, color: Colors.white),
             ),
             // SWIPE LEFT -> NOW PLAYING
-            secondaryBackground: _buildSwipeBackground(
+            secondaryBackground: Container(
               color: Colors.blue,
-              icon: Icons.play_circle_outline,
               alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 20.0),
+              child: const Icon(Icons.play_circle_outline, color: Colors.white),
             ),
             onDismissed: (direction) {
               HapticFeedback.mediumImpact();
@@ -46,15 +58,6 @@ class ArchiveScreen extends ConsumerWidget {
           );
         },
       ),
-    );
-  }
-
-  Widget _buildSwipeBackground({required Color color, required IconData icon, required Alignment alignment}) {
-    return Container(
-      color: color,
-      alignment: alignment,
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-      child: Icon(icon, color: Colors.white),
     );
   }
 }

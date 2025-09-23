@@ -53,12 +53,10 @@ class GameNotifier extends StateNotifier<List<Game>> {
     refreshGames();
   }
 
-  // --- ADD THIS METHOD BACK ---
-  void archiveGame(Game game) {
-    // Archiving now means setting the status to 'beaten' by default
-    game.status = GameStatus.beaten;
+  // --- THIS IS THE NEWLY ADDED METHOD ---
+  void updateGameStatus(Game game, GameStatus newStatus) {
+    game.status = newStatus;
     game.save();
     refreshGames();
   }
-// --- END OF ADDED METHOD ---
 }

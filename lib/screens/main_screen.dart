@@ -4,16 +4,15 @@ import 'package:gamelog/models/game.dart';
 import 'package:gamelog/screens/add_edit_game_screen.dart';
 import 'package:gamelog/screens/archive_screen.dart';
 import 'package:gamelog/screens/backlog_screen.dart';
-import 'package:gamelog/screens/home_screen.dart';
+import 'package:gamelog/screens/home_screen.dart'; // This is our "Now Playing" screen
 import 'package:gamelog/screens/profile_screen.dart';
 
-// Default to index 0 (Now Playing).
-final mainScreenIndexProvider = StateProvider<int>((ref) => 0);
+// Default to index 2 (Now Playing).
+final mainScreenIndexProvider = StateProvider<int>((ref) => 2);
 
 class MainScreen extends ConsumerWidget {
   const MainScreen({super.key});
 
-  // Logic to show the FAB menu
   void _showAddGameMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -27,7 +26,7 @@ class MainScreen extends ConsumerWidget {
                 leading: const Icon(Icons.playlist_add),
                 title: const Text('Add to Backlog'),
                 onTap: () {
-                  Navigator.pop(ctx); // Close the sheet
+                  Navigator.pop(ctx);
                   Navigator.of(context).push(MaterialPageRoute(
                     builder: (_) => const AddEditGameScreen(defaultStatus: GameStatus.backlog),
                   ));
@@ -66,22 +65,25 @@ class MainScreen extends ConsumerWidget {
     final selectedIndex = ref.watch(mainScreenIndexProvider);
 
     final List<Widget> screens = [
-      const HomeScreen(),      // Index 0: Now Playing
-      const BacklogScreen(),   // Index 1: Backlog
-      const ArchiveScreen(),   // Index 2: Archive
-      const ProfileScreen(),     // Index 3: Profile
+      Container(color: Colors.teal, child: const Center(child: Text('Gamer Tag'))), // Index 0
+      const BacklogScreen(),                  // Index 1
+      const HomeScreen(),                     // Index 2 (Now Playing)
+      const ArchiveScreen(),                  // Index 3
+      const ProfileScreen(),                  // Index 4
     ];
 
-    // Show the FAB on all screens except the Profile screen
-    final fabVisible = selectedIndex < 3;
+    // Show the FAB on all screens except the Profile screen (index 4)
+    final fabVisible = selectedIndex < 4;
 
     return Scaffold(
       body: screens[selectedIndex],
 
-      floatingActionButton: fabVisible ? FloatingActionButton(
+      floatingActionButton: fabVisible
+          ? FloatingActionButton(
         onPressed: () => _showAddGameMenu(context),
         child: const Icon(Icons.add),
-      ) : null,
+      )
+          : null,
 
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: selectedIndex,
@@ -89,12 +91,13 @@ class MainScreen extends ConsumerWidget {
           ref.read(mainScreenIndexProvider.notifier).state = index;
         },
         type: BottomNavigationBarType.fixed,
-        // Use theme colors for a more integrated look
         selectedItemColor: Theme.of(context).colorScheme.primary,
         unselectedItemColor: Colors.grey,
+        showUnselectedLabels: true,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.gamepad_outlined), label: 'Now Playing'),
+          BottomNavigationBarItem(icon: Icon(Icons.style_outlined), label: 'Gamer Tag'),
           BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), label: 'Backlog'),
+          BottomNavigationBarItem(icon: Icon(Icons.gamepad_outlined), label: 'Now Playing'),
           BottomNavigationBarItem(icon: Icon(Icons.archive_outlined), label: 'Archive'),
           BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
         ],

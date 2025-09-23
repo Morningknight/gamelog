@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gamelog/providers/game_provider.dart';
 import 'package:gamelog/providers/user_settings_provider.dart';
+import 'package:gamelog/screens/about_screen.dart';
 import 'package:gamelog/screens/app_settings_screen.dart';
 import 'package:gamelog/widgets/profile_menu_widgets.dart';
 
@@ -21,10 +23,7 @@ class ProfileScreen extends ConsumerWidget {
           decoration: const InputDecoration(labelText: 'New Name'),
         ),
         actions: [
-          TextButton(
-            child: const Text('Cancel'),
-            onPressed: () => Navigator.of(ctx).pop(),
-          ),
+          TextButton(child: const Text('Cancel'), onPressed: () => Navigator.of(ctx).pop()),
           ElevatedButton(
             child: const Text('Save'),
             onPressed: () {
@@ -44,6 +43,8 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userName = ref.watch(userNameProvider);
+    final allGames = ref.watch(gameListProvider);
+    final totalGames = allGames.length;
 
     return Scaffold(
       appBar: AppBar(
@@ -52,37 +53,29 @@ class ProfileScreen extends ConsumerWidget {
       body: ListView(
         children: [
           const SizedBox(height: 20),
-          const CircleAvatar(
-            radius: 50,
-            child: Icon(Icons.person, size: 50),
-          ),
+          const CircleAvatar(radius: 50, child: Icon(Icons.person, size: 50)),
           const SizedBox(height: 12),
           Center(
             child: Text(
-              userName, // Reads the name from the provider
+              userName,
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(height: 20),
-          // We can make these stats dynamic in a future step
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildStatChip('Games Left', context),
-              _buildStatChip('Games Done', context),
-            ],
-          ),
+
+          // --- NEW "TOTAL GAMES" BAR ---
+          _buildTotalGamesStat(totalGames, context),
+          // --- END OF NEW BAR ---
+
           const SizedBox(height: 20),
           const Divider(),
           const SectionTitle(title: 'Settings'),
           ProfileMenuItem(
-            icon: Icons.settings,
+            icon: Icons.settings_outlined,
             title: 'App Settings',
             onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (ctx) => const AppSettingsScreen(),
-                ),
+                MaterialPageRoute(builder: (ctx) => const AppSettingsScreen()),
               );
             },
           ),
@@ -90,21 +83,63 @@ class ProfileScreen extends ConsumerWidget {
           ProfileMenuItem(
             icon: Icons.person_outline,
             title: 'Change account name',
+            onTap: () => _showChangeNameDialog(context, ref),
+          ),
+          const SectionTitle(title: 'GameLog'),
+
+          // --- CONDENSED MENU ITEM ---
+          ProfileMenuItem(
+            icon: Icons.info_outline,
+            title: 'About & Support',
             onTap: () {
-              _showChangeNameDialog(context, ref); // Calls the dialog
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (ctx) => const AboutScreen()),
+              );
             },
           ),
-          // ... other menu items ...
+          // --- END OF CONDENSED ITEM ---
+
+          const Divider(),
+          ProfileMenuItem(
+            icon: Icons.logout,
+            title: 'Log out',
+            textColor: Colors.red,
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Log Out'),
+                  content: const Text('This is a placeholder for the logout feature.'),
+                  actions: [TextButton(child: const Text('OK'), onPressed: () => Navigator.of(ctx).pop())],
+                ),
+              );
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildStatChip(String label, BuildContext context) {
-    return Chip(
-      label: Text(label),
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+  // Helper widget for the new "Total Games" bar
+  Widget _buildTotalGamesStat(int count, BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.collections_bookmark, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 12),
+          Text(
+            'Total Games Added: $count',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
     );
   }
 }

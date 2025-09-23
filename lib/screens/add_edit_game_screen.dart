@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gamelog/models/game.dart';
+import 'package:gamelog/models/tag_data.dart';
 import 'package:gamelog/providers/game_provider.dart';
+import 'package:gamelog/widgets/tag_selector.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 class AddEditGameScreen extends ConsumerStatefulWidget {
   final Game? game;
-  const AddEditGameScreen({super.key, this.game});
+  final GameStatus? defaultStatus; // Accepts a default status
+
+  const AddEditGameScreen({super.key, this.game, this.defaultStatus});
 
   @override
   ConsumerState<AddEditGameScreen> createState() => _AddEditGameScreenState();
@@ -14,13 +19,55 @@ class AddEditGameScreen extends ConsumerStatefulWidget {
 class _AddEditGameScreenState extends ConsumerState<AddEditGameScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
-  final _platformController = TextEditingController();
-  final _genreController = TextEditingController();
 
-  // --- UPDATED STATUS LOGIC ---
-  GameStatus? _selectedStatus; // Now holds a GameStatus object
+  String? _selectedPlatform;
+  String? _selectedGenre;
+  GameStatus? _selectedStatus;
 
-  // Helper to get a display-friendly string from the enum
+  @override
+  void initState() {
+    super.initState();
+    if (widget.game != null) { // Edit Mode
+      _titleController.text = widget.game!.title;
+      _selectedPlatform = widget.game!.platform;
+      _selectedGenre = widget.game!.genre;
+      _selectedStatus = widget.game!.status;
+    } else { // Add Mode
+      // Use the default status passed from the FAB menu, or fallback to backlog
+      _selectedStatus = widget.defaultStatus ?? GameStatus.backlog;
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    super.dispose();
+  }
+
+  void _showPlatformSelector() async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => TagSelector(
+        title: 'Select a Platform',
+        tags: platformTags,
+        currentlySelected: _selectedPlatform,
+      ),
+    );
+    if (result != null) setState(() => _selectedPlatform = result);
+  }
+
+  void _showGenreSelector() async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => TagSelector(
+        title: 'Select a Genre',
+        tags: genreTags,
+        currentlySelected: _selectedGenre,
+      ),
+    );
+    if (result != null) setState(() => _selectedGenre = result);
+  }
+
   String _getStatusText(GameStatus status) {
     switch (status) {
       case GameStatus.nowPlaying: return 'Now Playing';
@@ -32,55 +79,33 @@ class _AddEditGameScreenState extends ConsumerState<AddEditGameScreen> {
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    if (widget.game != null) {
-      _titleController.text = widget.game!.title;
-      _platformController.text = widget.game!.platform;
-      _genreController.text = widget.game!.genre;
-      _selectedStatus = widget.game!.status;
-    } else {
-      // Default to Backlog for a new game
-      _selectedStatus = GameStatus.backlog;
-    }
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _platformController.dispose();
-    _genreController.dispose();
-    super.dispose();
-  }
-
   void _saveForm() {
-    final isValid = _formKey.currentState!.validate();
-    if (!isValid || _selectedStatus == null) {
-      return;
-    }
+    if (_formKey.currentState!.validate()) {
+      if (_selectedPlatform == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a platform.')));
+        return;
+      }
+      if (_selectedGenre == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a genre.')));
+        return;
+      }
 
-    if (widget.game != null) {
-      // We are in Edit Mode
-      // Update the existing game object's properties
-      widget.game!.title = _titleController.text;
-      widget.game!.platform = _platformController.text;
-      widget.game!.genre = _genreController.text;
-      widget.game!.status = _selectedStatus!;
-      ref.read(gameListProvider.notifier).updateGame(widget.game!);
-    } else {
-      // We are in Add Mode
-      final newGame = Game(
+      final gameData = Game(
         title: _titleController.text,
-        platform: _platformController.text,
-        genre: _genreController.text,
+        platform: _selectedPlatform!,
+        genre: _selectedGenre!,
         status: _selectedStatus!,
-        dateAdded: DateTime.now(),
+        dateAdded: widget.game?.dateAdded ?? DateTime.now(),
       );
-      ref.read(gameListProvider.notifier).addGame(newGame);
-    }
 
-    Navigator.of(context).pop();
+      if (widget.game != null) {
+        Hive.box<Game>('games').put(widget.game!.key, gameData);
+        ref.read(gameListProvider.notifier).refreshGames();
+      } else {
+        ref.read(gameListProvider.notifier).addGame(gameData);
+      }
+      Navigator.of(context).pop();
+    }
   }
 
   @override
@@ -107,23 +132,24 @@ class _AddEditGameScreenState extends ConsumerState<AddEditGameScreen> {
                 validator: (value) => value!.trim().isEmpty ? 'Please enter a title.' : null,
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _platformController,
-                decoration: const InputDecoration(labelText: 'Platform'),
-                validator: (value) => value!.trim().isEmpty ? 'Please enter a platform.' : null,
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Platform'),
+                subtitle: Text(_selectedPlatform ?? 'Not selected'),
+                trailing: const Icon(Icons.arrow_drop_down),
+                onTap: _showPlatformSelector,
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Genre'),
+                subtitle: Text(_selectedGenre ?? 'Not selected'),
+                trailing: const Icon(Icons.arrow_drop_down),
+                onTap: _showGenreSelector,
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _genreController,
-                decoration: const InputDecoration(labelText: 'Genre'),
-                validator: (value) => value!.trim().isEmpty ? 'Please enter a genre.' : null,
-              ),
-              const SizedBox(height: 16),
-              // --- UPDATED DROPDOWN ---
               DropdownButtonFormField<GameStatus>(
-                initialValue: _selectedStatus,
+                value: _selectedStatus,
                 decoration: const InputDecoration(labelText: 'Status'),
-                // Use GameStatus.values to get all possible enum options
                 items: GameStatus.values.map((GameStatus status) {
                   return DropdownMenuItem<GameStatus>(
                     value: status,

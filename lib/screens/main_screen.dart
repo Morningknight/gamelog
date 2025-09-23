@@ -1,22 +1,70 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gamelog/models/game.dart';
 import 'package:gamelog/screens/add_edit_game_screen.dart';
-import 'package:gamelog/screens/archive_screen.dart'; // <-- ADD THIS IMPORT
-import 'package:gamelog/screens/backlog_screen.dart'; // <-- ADD THIS IMPORT
+import 'package:gamelog/screens/archive_screen.dart';
+import 'package:gamelog/screens/backlog_screen.dart';
 import 'package:gamelog/screens/home_screen.dart';
 import 'package:gamelog/screens/profile_screen.dart';
 
-// The mainScreenIndexProvider remains the same
+// Default to index 0 (Now Playing).
 final mainScreenIndexProvider = StateProvider<int>((ref) => 0);
 
 class MainScreen extends ConsumerWidget {
   const MainScreen({super.key});
 
+  // Logic to show the FAB menu
+  void _showAddGameMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.playlist_add),
+                title: const Text('Add to Backlog'),
+                onTap: () {
+                  Navigator.pop(ctx); // Close the sheet
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const AddEditGameScreen(defaultStatus: GameStatus.backlog),
+                  ));
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.play_circle_outline),
+                title: const Text('Add to Now Playing'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const AddEditGameScreen(defaultStatus: GameStatus.nowPlaying),
+                  ));
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.archive_outlined),
+                title: const Text('Add to Archive'),
+                subtitle: const Text('For a game you already beat'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const AddEditGameScreen(defaultStatus: GameStatus.beaten),
+                  ));
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedIndex = ref.watch(mainScreenIndexProvider);
 
-    // --- REPLACE PLACEHOLDERS WITH REAL SCREENS ---
     final List<Widget> screens = [
       const HomeScreen(),      // Index 0: Now Playing
       const BacklogScreen(),   // Index 1: Backlog
@@ -24,57 +72,32 @@ class MainScreen extends ConsumerWidget {
       const ProfileScreen(),     // Index 3: Profile
     ];
 
-    // Determine which FAB to show based on the current screen
-    Widget? floatingActionButton;
-    if (selectedIndex == 0 || selectedIndex == 1) { // Show on Now Playing & Backlog
-      floatingActionButton = FloatingActionButton(
-        onPressed: () {
-          // The FAB should add a game to the correct list.
-          // For now, it opens a generic add screen. This can be refined later.
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (ctx) => const AddEditGameScreen(),
-            ),
-          );
-        },
-        child: const Icon(Icons.add),
-      );
-    }
+    // Show the FAB on all screens except the Profile screen
+    final fabVisible = selectedIndex < 3;
 
     return Scaffold(
       body: screens[selectedIndex],
 
-      floatingActionButton: floatingActionButton,
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: fabVisible ? FloatingActionButton(
+        onPressed: () => _showAddGameMenu(context),
+        child: const Icon(Icons.add),
+      ) : null,
 
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8.0,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: <Widget>[
-            _buildNavItem(context, ref, icon: Icons.gamepad_outlined, index: 0, label: 'Now Playing'),
-            _buildNavItem(context, ref, icon: Icons.calendar_today_outlined, index: 1, label: 'Backlog'),
-            const SizedBox(width: 40), // The space for the FAB
-            _buildNavItem(context, ref, icon: Icons.archive_outlined, index: 2, label: 'Archive'),
-            _buildNavItem(context, ref, icon: Icons.person_outline, index: 3, label: 'Profile'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(BuildContext context, WidgetRef ref, {required IconData icon, required int index, required String label}) {
-    final isSelected = ref.watch(mainScreenIndexProvider) == index;
-    final color = isSelected ? Theme.of(context).colorScheme.primary : Colors.grey;
-
-    return Tooltip(
-      message: label,
-      child: IconButton(
-        icon: Icon(icon, color: color),
-        onPressed: () {
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: selectedIndex,
+        onTap: (index) {
           ref.read(mainScreenIndexProvider.notifier).state = index;
         },
+        type: BottomNavigationBarType.fixed,
+        // Use theme colors for a more integrated look
+        selectedItemColor: Theme.of(context).colorScheme.primary,
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.gamepad_outlined), label: 'Now Playing'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), label: 'Backlog'),
+          BottomNavigationBarItem(icon: Icon(Icons.archive_outlined), label: 'Archive'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+        ],
       ),
     );
   }

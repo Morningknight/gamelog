@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gamelog/models/game.dart';
 import 'package:gamelog/providers/game_provider.dart';
+import 'package:gamelog/screens/add_edit_game_screen.dart';
 import 'package:gamelog/widgets/game_card.dart';
 
 class BacklogScreen extends ConsumerWidget {
@@ -9,12 +10,12 @@ class BacklogScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Watch our new provider for backlog games
     final List<Game> games = ref.watch(backlogProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Backlog'),
+        // No actions button needed here anymore.
       ),
       body: ListView.builder(
         itemCount: games.length,
@@ -25,22 +26,21 @@ class BacklogScreen extends ConsumerWidget {
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: InkWell(
               onTap: () {
-                // Tapping a backlog item could show an edit screen in the future
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (ctx) => AddEditGameScreen(game: game)),
+                );
               },
               child: Stack(
                 children: [
-                  // We reuse the GameCard for consistent looks
                   GameCard(game: game),
-                  // Add an overlay button to move the game to the active list
                   Positioned(
                     bottom: 8,
                     left: 16,
                     child: ElevatedButton.icon(
-                      icon: const Icon(Icons.add_to_home_screen, size: 16),
-                      label: const Text('Move to Now Playing'),
+                      icon: const Icon(Icons.play_arrow, size: 16),
+                      label: const Text('Start Playing'),
                       onPressed: () {
-                        // Update the game's status
-                        game.status = GameStatus.notStarted;
+                        game.status = GameStatus.nowPlaying;
                         ref.read(gameListProvider.notifier).updateGame(game);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('${game.title} moved to Now Playing')),

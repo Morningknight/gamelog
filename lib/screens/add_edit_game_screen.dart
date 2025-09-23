@@ -174,7 +174,7 @@ class _AddEditGameScreenState extends ConsumerState<AddEditGameScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<GameStatus>(
-                      value: _selectedStatus,
+                      initialValue: _selectedStatus,
                       decoration: const InputDecoration(labelText: 'Status'),
                       items: GameStatus.values.map((GameStatus status) {
                         return DropdownMenuItem<GameStatus>(

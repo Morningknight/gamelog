@@ -53,10 +53,32 @@ class GameNotifier extends StateNotifier<List<Game>> {
     refreshGames();
   }
 
-  // --- THIS IS THE NEWLY ADDED METHOD ---
   void updateGameStatus(Game game, GameStatus newStatus) {
     game.status = newStatus;
     game.save();
     refreshGames();
   }
 }
+
+// --- NEW SEARCH PROVIDERS ---
+
+// This provider will hold the current text being typed into the search bar.
+final searchQueryProvider = StateProvider<String>((ref) => '');
+
+// This is a computed provider that returns a filtered list of games
+// based on the current search query.
+// It searches across ALL games from the master list.
+final searchResultsProvider = Provider<List<Game>>((ref) {
+  final allGames = ref.watch(gameListProvider);
+  final query = ref.watch(searchQueryProvider);
+
+  // If the query is empty, return an empty list (don't show all games by default).
+  if (query.trim().isEmpty) {
+    return [];
+  }
+
+  // Filter the list, ignoring case.
+  return allGames.where((game) {
+    return game.title.toLowerCase().contains(query.toLowerCase());
+  }).toList();
+});

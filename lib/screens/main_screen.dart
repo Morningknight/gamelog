@@ -4,11 +4,12 @@ import 'package:gamelog/models/game.dart';
 import 'package:gamelog/screens/add_edit_game_screen.dart';
 import 'package:gamelog/screens/archive_screen.dart';
 import 'package:gamelog/screens/backlog_screen.dart';
-import 'package:gamelog/screens/home_screen.dart'; // This is our "Now Playing" screen
+import 'package:gamelog/screens/home_screen.dart';
 import 'package:gamelog/screens/profile_screen.dart';
+import 'package:gamelog/screens/search_screen.dart';
 
-// Default to index 2 (Now Playing).
-final mainScreenIndexProvider = StateProvider<int>((ref) => 2);
+// Default to index 0 (Now Playing).
+final mainScreenIndexProvider = StateProvider<int>((ref) => 0);
 
 class MainScreen extends ConsumerWidget {
   const MainScreen({super.key});
@@ -64,27 +65,35 @@ class MainScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedIndex = ref.watch(mainScreenIndexProvider);
 
+    // --- FULL LIST OF SCREENS ---
     final List<Widget> screens = [
-      Container(color: Colors.teal, child: const Center(child: Text('Gamer Tag'))), // Index 0
-      const BacklogScreen(),                  // Index 1
-      const HomeScreen(),                     // Index 2 (Now Playing)
-      const ArchiveScreen(),                  // Index 3
-      const ProfileScreen(),                  // Index 4
+      const HomeScreen(),
+      const BacklogScreen(),
+      const ArchiveScreen(),
+      const ProfileScreen(),
     ];
 
-    // Show the FAB on all screens except the Profile screen (index 4)
-    final fabVisible = selectedIndex < 4;
+    final fabVisible = selectedIndex < 3; // Hide on Profile screen
 
     return Scaffold(
       body: screens[selectedIndex],
 
       floatingActionButton: fabVisible
-          ? FloatingActionButton(
-        onPressed: () => _showAddGameMenu(context),
-        child: const Icon(Icons.add),
+          ? GestureDetector(
+        onLongPress: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const SearchScreen()),
+          );
+        },
+        child: FloatingActionButton(
+          onPressed: () => _showAddGameMenu(context),
+          tooltip: 'Long press to search',
+          child: const Icon(Icons.add),
+        ),
       )
           : null,
 
+      // --- FULL BOTTOMNAVIGATIONBAR ---
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: selectedIndex,
         onTap: (index) {
@@ -93,11 +102,9 @@ class MainScreen extends ConsumerWidget {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Theme.of(context).colorScheme.primary,
         unselectedItemColor: Colors.grey,
-        showUnselectedLabels: true,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.style_outlined), label: 'Gamer Tag'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), label: 'Backlog'),
           BottomNavigationBarItem(icon: Icon(Icons.gamepad_outlined), label: 'Now Playing'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), label: 'Backlog'),
           BottomNavigationBarItem(icon: Icon(Icons.archive_outlined), label: 'Archive'),
           BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
         ],

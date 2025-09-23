@@ -17,7 +17,6 @@ class AddEditGameScreen extends ConsumerStatefulWidget {
 }
 
 class _AddEditGameScreenState extends ConsumerState<AddEditGameScreen> {
-  // --- THESE WERE THE MISSING PIECES ---
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
 
@@ -107,7 +106,6 @@ class _AddEditGameScreenState extends ConsumerState<AddEditGameScreen> {
       Navigator.of(context).pop();
     }
   }
-  // --- END OF MISSING PIECES ---
 
   void _deleteGame() {
     showDialog(
@@ -125,8 +123,8 @@ class _AddEditGameScreenState extends ConsumerState<AddEditGameScreen> {
             child: const Text('Yes, Delete'),
             onPressed: () {
               ref.read(gameListProvider.notifier).deleteGame(widget.game!);
-              Navigator.of(ctx).pop(); // Close the dialog
-              Navigator.of(context).pop(); // Go back from the edit screen
+              Navigator.of(ctx).pop();
+              Navigator.of(context).pop();
             },
           ),
         ],
@@ -142,9 +140,8 @@ class _AddEditGameScreenState extends ConsumerState<AddEditGameScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(appBarTitle),
-        actions: [
-          IconButton(icon: const Icon(Icons.save), onPressed: _saveForm),
-        ],
+        // --- THE SAVE ICONBUTTON HAS BEEN REMOVED FROM THE ACTIONS LIST ---
+        actions: const [],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -177,7 +174,7 @@ class _AddEditGameScreenState extends ConsumerState<AddEditGameScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<GameStatus>(
-                      initialValue: _selectedStatus,
+                      value: _selectedStatus,
                       decoration: const InputDecoration(labelText: 'Status'),
                       items: GameStatus.values.map((GameStatus status) {
                         return DropdownMenuItem<GameStatus>(

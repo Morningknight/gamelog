@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gamelog/models/game.dart';
 import 'package:gamelog/providers/game_provider.dart';
+import 'package:gamelog/screens/search_screen.dart';
 import 'package:gamelog/widgets/empty_state_widget.dart';
 import 'package:gamelog/widgets/game_card.dart';
 
@@ -16,28 +17,37 @@ class ArchiveScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Archive'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: 'Search All Games',
+            onPressed: () {
+              // This is the line with the corrected context
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SearchScreen()),
+              );
+            },
+          ),
+        ],
       ),
       body: games.isEmpty
           ? const EmptyStateWidget(
         icon: Icons.inventory_2_outlined,
         title: 'Archive is Empty',
-        message: "Games you've beaten will appear here. Archive a game from the 'Now Playing' list by swiping it to the right.",
+        message: "Games you've beaten will appear here.",
       )
-      // --- FULL LISTVIEW.BUILDER LOGIC RESTORED ---
           : ListView.builder(
         itemCount: games.length,
         itemBuilder: (context, index) {
           final game = games[index];
           return Dismissible(
             key: ValueKey(game.key),
-            // SWIPE RIGHT -> BACKLOG
             background: Container(
               color: Colors.orange,
               alignment: Alignment.centerLeft,
               padding: const EdgeInsets.only(left: 20.0),
               child: const Icon(Icons.playlist_add, color: Colors.white),
             ),
-            // SWIPE LEFT -> NOW PLAYING
             secondaryBackground: Container(
               color: Colors.blue,
               alignment: Alignment.centerRight,
@@ -46,10 +56,10 @@ class ArchiveScreen extends ConsumerWidget {
             ),
             onDismissed: (direction) {
               HapticFeedback.mediumImpact();
-              if (direction == DismissDirection.startToEnd) { // Right
+              if (direction == DismissDirection.startToEnd) { // Right -> Backlog
                 ref.read(gameListProvider.notifier).updateGameStatus(game, GameStatus.backlog);
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${game.title} moved to Backlog')));
-              } else { // Left
+              } else { // Left -> Now Playing
                 ref.read(gameListProvider.notifier).updateGameStatus(game, GameStatus.nowPlaying);
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${game.title} moved to Now Playing')));
               }

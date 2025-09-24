@@ -6,12 +6,11 @@ import 'package:gamelog/screens/archive_screen.dart';
 import 'package:gamelog/screens/backlog_screen.dart';
 import 'package:gamelog/screens/home_screen.dart';
 import 'package:gamelog/screens/profile_screen.dart';
-import 'package:gamelog/screens/support_screen.dart'; // Import for dialog button
-import 'package:shared_preferences/shared_preferences.dart'; // Import for checking date
+import 'package:gamelog/screens/support_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final mainScreenIndexProvider = StateProvider<int>((ref) => 0);
 
-// --- CONVERT TO CONSUMER STATEFUL WIDGET ---
 class MainScreen extends ConsumerStatefulWidget {
   const MainScreen({super.key});
 
@@ -20,42 +19,52 @@ class MainScreen extends ConsumerStatefulWidget {
 }
 
 class _MainScreenState extends ConsumerState<MainScreen> {
-  // --- ADD INITSTATE AND POPUP LOGIC ---
   @override
   void initState() {
     super.initState();
-    // Use WidgetsBinding to ensure the build is complete before showing a dialog
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkForMonthlyPopup();
+      _handleAppStartupLogic();
     });
   }
 
-  Future<void> _checkForMonthlyPopup() async {
+  // --- NEW, SMARTER STARTUP LOGIC ---
+  Future<void> _handleAppStartupLogic() async {
     final prefs = await SharedPreferences.getInstance();
-    // Try to get the last date the popup was shown
-    final lastPopupDateString = prefs.getString('lastSupportPopupDate');
 
+    // 1. Increment and get the app open count.
+    int appOpenCount = prefs.getInt('appOpenCount') ?? 0;
+    appOpenCount++;
+    await prefs.setInt('appOpenCount', appOpenCount);
+
+    // 2. Check if the user is new (opened the app less than 5 times).
+    if (appOpenCount < 5) {
+      return; // Do not show the popup for new users.
+    }
+
+    // 3. If the user is not new, proceed with the monthly check.
+    final lastPopupDateString = prefs.getString('lastSupportPopupDate');
     if (lastPopupDateString != null) {
       final lastPopupDate = DateTime.parse(lastPopupDateString);
-      // If it has been less than 30 days, do nothing.
       if (DateTime.now().difference(lastPopupDate).inDays < 30) {
-        return;
+        return; // It's been less than 30 days, so do nothing.
       }
     }
 
-    // If we're here, it's either the first time or 30 days have passed.
-    // So, show the dialog.
+    // 4. If we're here, it's time to show the dialog.
     if (mounted) {
       _showSupportDialog(context);
     }
   }
 
+  // --- UPDATED DIALOG WITH NEW TEXT ---
   void _showSupportDialog(BuildContext context) async {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Enjoying GameLog?'),
-        content: const Text('A lot of love goes into developing this app. If you find it useful, please consider supporting its future.'),
+        content: const Text(
+          "GameLog is proudly ad-free, and that's thanks to support from users like you.\n\nEvery January, 10% of all support received is donated to charity. Your contribution makes a real difference!",
+        ),
         actions: [
           TextButton(
             child: const Text('Maybe Later'),
@@ -64,8 +73,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           FilledButton(
             child: const Text('Support Us'),
             onPressed: () {
-              Navigator.of(ctx).pop(); // Close the dialog first
-              // Then navigate to the support screen
+              Navigator.of(ctx).pop();
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const SupportScreen()),
               );
@@ -75,45 +83,80 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       ),
     );
 
-    // After showing the dialog, save the current time.
+    // Always save the current time after showing the dialog to reset the timer.
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('lastSupportPopupDate', DateTime.now().toIso8601String());
   }
-  // --- END OF NEW LOGIC ---
 
   void _showAddGameMenu(BuildContext context) {
-    // ... (This function remains unchanged)
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.playlist_add),
+                title: const Text('Add to Backlog'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const AddEditGameScreen(defaultStatus: GameStatus.backlog),
+                  ));
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.play_circle_outline),
+                title: const Text('Add to Now Playing'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const AddEditGameScreen(defaultStatus: GameStatus.nowPlaying),
+                  ));
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.archive_outlined),
+                title: const Text('Add to Archive'),
+                subtitle: const Text('For a game you already beat'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => const AddEditGameScreen(defaultStatus: GameStatus.beaten),
+                  ));
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // In a ConsumerStatefulWidget, 'ref' is a property of the state class.
     final selectedIndex = ref.watch(mainScreenIndexProvider);
-
     final List<Widget> screens = [
       const HomeScreen(),
       const BacklogScreen(),
       const ArchiveScreen(),
       const ProfileScreen(),
     ];
-
     final fabVisible = selectedIndex < 3;
 
     return Scaffold(
       body: screens[selectedIndex],
-
       floatingActionButton: fabVisible
           ? FloatingActionButton(
         onPressed: () => _showAddGameMenu(context),
         child: const Icon(Icons.add),
       )
           : null,
-
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: selectedIndex,
-        onTap: (index) {
-          ref.read(mainScreenIndexProvider.notifier).state = index;
-        },
+        onTap: (index) => ref.read(mainScreenIndexProvider.notifier).state = index,
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Theme.of(context).colorScheme.primary,
         unselectedItemColor: Colors.grey,

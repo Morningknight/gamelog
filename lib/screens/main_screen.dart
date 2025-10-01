@@ -4,12 +4,14 @@ import 'package:gamelog/models/game.dart';
 import 'package:gamelog/screens/add_edit_game_screen.dart';
 import 'package:gamelog/screens/archive_screen.dart';
 import 'package:gamelog/screens/backlog_screen.dart';
+import 'package:gamelog/screens/collection_screen.dart';
 import 'package:gamelog/screens/home_screen.dart';
 import 'package:gamelog/screens/profile_screen.dart';
 import 'package:gamelog/screens/support_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-final mainScreenIndexProvider = StateProvider<int>((ref) => 0);
+// Default to index 2 (Now Playing).
+final mainScreenIndexProvider = StateProvider<int>((ref) => 2);
 
 class MainScreen extends ConsumerStatefulWidget {
   const MainScreen({super.key});
@@ -21,42 +23,29 @@ class MainScreen extends ConsumerStatefulWidget {
 class _MainScreenState extends ConsumerState<MainScreen> {
   @override
   void initState() {
-    super.initState();
+    super.initState(); // Fixes the '@mustCallSuper' warning
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _handleAppStartupLogic();
     });
   }
 
-  // --- NEW, SMARTER STARTUP LOGIC ---
   Future<void> _handleAppStartupLogic() async {
     final prefs = await SharedPreferences.getInstance();
-
-    // 1. Increment and get the app open count.
     int appOpenCount = prefs.getInt('appOpenCount') ?? 0;
     appOpenCount++;
     await prefs.setInt('appOpenCount', appOpenCount);
 
-    // 2. Check if the user is new (opened the app less than 5 times).
-    if (appOpenCount < 5) {
-      return; // Do not show the popup for new users.
-    }
+    if (appOpenCount < 5) return;
 
-    // 3. If the user is not new, proceed with the monthly check.
     final lastPopupDateString = prefs.getString('lastSupportPopupDate');
     if (lastPopupDateString != null) {
       final lastPopupDate = DateTime.parse(lastPopupDateString);
-      if (DateTime.now().difference(lastPopupDate).inDays < 30) {
-        return; // It's been less than 30 days, so do nothing.
-      }
+      if (DateTime.now().difference(lastPopupDate).inDays < 30) return;
     }
 
-    // 4. If we're here, it's time to show the dialog.
-    if (mounted) {
-      _showSupportDialog(context);
-    }
+    if (mounted) _showSupportDialog(context);
   }
 
-  // --- UPDATED DIALOG WITH NEW TEXT ---
   void _showSupportDialog(BuildContext context) async {
     showDialog(
       context: context,
@@ -82,8 +71,6 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         ],
       ),
     );
-
-    // Always save the current time after showing the dialog to reset the timer.
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('lastSupportPopupDate', DateTime.now().toIso8601String());
   }
@@ -138,31 +125,38 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   @override
   Widget build(BuildContext context) {
     final selectedIndex = ref.watch(mainScreenIndexProvider);
+
     final List<Widget> screens = [
-      const HomeScreen(),
+      const CollectionScreen(),
       const BacklogScreen(),
+      const HomeScreen(),
       const ArchiveScreen(),
       const ProfileScreen(),
     ];
-    final fabVisible = selectedIndex < 3;
+
+    final fabVisible = selectedIndex < 4; // Hide on Profile
 
     return Scaffold(
       body: screens[selectedIndex],
+
       floatingActionButton: fabVisible
           ? FloatingActionButton(
         onPressed: () => _showAddGameMenu(context),
         child: const Icon(Icons.add),
       )
           : null,
+
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: selectedIndex,
         onTap: (index) => ref.read(mainScreenIndexProvider.notifier).state = index,
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Theme.of(context).colorScheme.primary,
         unselectedItemColor: Colors.grey,
+        showUnselectedLabels: false,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.gamepad_outlined), label: 'Now Playing'),
+          BottomNavigationBarItem(icon: Icon(Icons.collections_bookmark_outlined), label: 'Collection'),
           BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), label: 'Backlog'),
+          BottomNavigationBarItem(icon: Icon(Icons.gamepad_outlined), label: 'Now Playing'),
           BottomNavigationBarItem(icon: Icon(Icons.archive_outlined), label: 'Archive'),
           BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
         ],

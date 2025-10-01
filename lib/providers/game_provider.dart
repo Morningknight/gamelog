@@ -2,34 +2,60 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gamelog/models/game.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
-// This provider holds the master list of ALL games from the database.
+// The master list of ALL games.
 final gameListProvider = StateNotifierProvider<GameNotifier, List<Game>>((ref) {
   return GameNotifier();
 });
 
-// "Now Playing" is ONLY for games with the 'nowPlaying' status.
+// --- REFINED PROVIDERS BASED ON NEW WORKFLOW ---
+
+// COLLECTION: All owned games that are NOT beaten.
+final collectionProvider = Provider<List<Game>>((ref) {
+  final allGames = ref.watch(gameListProvider);
+  return allGames.where((game) =>
+  game.status != GameStatus.beaten &&
+      game.status != GameStatus.backlog // Backlog is now a pure wishlist
+  ).toList();
+});
+
+// NOW PLAYING: Only the game(s) with the 'nowPlaying' status.
 final nowPlayingProvider = Provider<List<Game>>((ref) {
   final allGames = ref.watch(gameListProvider);
   return allGames.where((game) => game.status == GameStatus.nowPlaying).toList();
 });
 
-// "Archive" is ONLY for games with the 'beaten' status.
+// ARCHIVE: Only 'beaten' or 'dropped' games.
 final archiveProvider = Provider<List<Game>>((ref) {
   final allGames = ref.watch(gameListProvider);
-  return allGames.where((game) => game.status == GameStatus.beaten).toList();
-});
-
-// "Backlog" is for 'backlog', 'paused', 'dropped', and 'notStarted' statuses.
-final backlogProvider = Provider<List<Game>>((ref) {
-  final allGames = ref.watch(gameListProvider);
   return allGames.where((game) =>
-  game.status == GameStatus.backlog ||
-      game.status == GameStatus.paused ||
-      game.status == GameStatus.dropped ||
-      game.status == GameStatus.notStarted
+  game.status == GameStatus.beaten ||
+      game.status == GameStatus.dropped
   ).toList();
 });
 
+// BACKLOG (WISHLIST): Only games with the 'backlog' status.
+final backlogProvider = Provider<List<Game>>((ref) {
+  final allGames = ref.watch(gameListProvider);
+  return allGames.where((game) => game.status == GameStatus.backlog).toList();
+});
+
+// --- SEARCH PROVIDERS (Unchanged) ---
+final searchQueryProvider = StateProvider<String>((ref) => '');
+
+final searchResultsProvider = Provider<List<Game>>((ref) {
+  final allGames = ref.watch(gameListProvider);
+  final query = ref.watch(searchQueryProvider);
+
+  if (query.trim().isEmpty) {
+    return [];
+  }
+
+  return allGames.where((game) {
+    return game.title.toLowerCase().contains(query.toLowerCase());
+  }).toList();
+});
+
+// --- GAME NOTIFIER (Unchanged from last correct version) ---
 class GameNotifier extends StateNotifier<List<Game>> {
   GameNotifier() : super(Hive.box<Game>('games').values.toList());
   final _gameBox = Hive.box<Game>('games');
@@ -59,26 +85,3 @@ class GameNotifier extends StateNotifier<List<Game>> {
     refreshGames();
   }
 }
-
-// --- NEW SEARCH PROVIDERS ---
-
-// This provider will hold the current text being typed into the search bar.
-final searchQueryProvider = StateProvider<String>((ref) => '');
-
-// This is a computed provider that returns a filtered list of games
-// based on the current search query.
-// It searches across ALL games from the master list.
-final searchResultsProvider = Provider<List<Game>>((ref) {
-  final allGames = ref.watch(gameListProvider);
-  final query = ref.watch(searchQueryProvider);
-
-  // If the query is empty, return an empty list (don't show all games by default).
-  if (query.trim().isEmpty) {
-    return [];
-  }
-
-  // Filter the list, ignoring case.
-  return allGames.where((game) {
-    return game.title.toLowerCase().contains(query.toLowerCase());
-  }).toList();
-});
